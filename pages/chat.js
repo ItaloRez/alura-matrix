@@ -1,5 +1,5 @@
 import { Box, Text, TextField, Image, Button } from '@skynexui/components';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Component } from 'react';
 import appConfig from '../config.json';
 import { createClient } from '@supabase/supabase-js';
 import { Spinner, Overlay, Popover } from 'react-bootstrap';
@@ -7,9 +7,14 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { useRouter } from 'next/router';
 import { FiUsers } from "react-icons/fi";
 import { ButtonSendSticker } from '../src/components/ButtonSendSticker';
+import { AiFillAudio } from "react-icons/ai";
+import { AiOutlineAudioMu } from "react-icons/ai";
+import Audio from './audio';
 
 //senha supabase.io
 //rIsZ8n#r#uZf*IJ#ScjSJ4wS
+
+//enviar audio
 
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlhdCI6MTY0MzQ4ODcxNiwiZXhwIjoxOTU5MDY0NzE2fQ.RmEUu7IeRXYlT7cspeM6kzbPGtB_MFrUo-SUur4uz4c'
 const SUPABASE_URL = 'https://rzgzkhcchmfqmdrydiyg.supabase.co'
@@ -23,7 +28,6 @@ function escutaMensagensEmTempoReal(adicionaMensagem) {
             adicionaMensagem(resp.new)
         })
         .subscribe()
-
 }
 
 
@@ -60,6 +64,10 @@ export default function ChatPage() {
     const [carregando, setCarregando] = useState(true);
     const router = useRouter()
     const usuariologado = router.query.username
+    const tagMensagem = useRef()
+
+
+
 
 
 
@@ -76,6 +84,7 @@ export default function ChatPage() {
 
 
         setMensagem('')
+        tagMensagem.current.value = ''
     }
 
     return (
@@ -132,18 +141,19 @@ export default function ChatPage() {
                             alignItems: 'center',
                         }}
                     >
-                        <TextField
-                            value={mensagem}
-                            onChange={(e) => setMensagem(e.target.value)}
+                        <textarea
+                            ref={tagMensagem}
+                            //onChange={(e) => setMensagem(e.target.value)}
                             onKeyPress={(e) => {
                                 if (e.key === "Enter") {
                                     e.preventDefault()
-                                    handleNovaMensagem(mensagem)
+                                    handleNovaMensagem(tagMensagem.current.value)
                                 }
                             }}
+
                             placeholder="Insira sua mensagem aqui..."
                             type="textarea"
-                            styleSheet={{
+                            style={{
                                 width: '100%',
                                 border: '0',
                                 resize: 'none',
@@ -153,9 +163,13 @@ export default function ChatPage() {
                                 marginRight: '12px',
                                 color: appConfig.theme.colors.neutrals[200],
                             }}
+
                         />
                         <ButtonSendSticker
                             onStickerClick={(sticker) => handleNovaMensagem(`:sticker: ${sticker}`)}
+                        />
+                        <Audio 
+                            onAudioSend={(audio)=> handleNovaMensagem(`:audio:${audio}`)}
                         />
                     </Box>
                 </Box>
@@ -198,6 +212,60 @@ function MessageList({ mensagens, setMsg }) {
             .then((data) => setDataUser(data))
     }
 
+
+
+    const [showAudio, setShowAudio] = useState(true)
+    const [audio, setAudio] = useState('')
+
+    function renderSwitch(message) {
+        if (message.startsWith(':sticker:')) {
+            return <Image src={message.replace(':sticker:', '')} />
+        }
+
+        if (message.startsWith(':audio:')) {
+            const nome = message.replace(':audio:', '')
+            // var tag = ''
+            // supabaseClient
+            //     .storage
+            //     .from('audios')
+            //     .download(nome)
+            //     .then(data => {
+            //         //if(showAudio){
+            //         console.log(data)
+            //         const audioUrl = URL.createObjectURL(data.data)
+            //         tag = <audio src={audioUrl} controls></audio>
+            //         //setAudio(tag)   
+            //         // setShowAudio(false)
+            //         //}
+            //     })
+            // const getData = async () =>{
+            //     const data = await supabaseClient
+            //         .storage
+            //         .from('audios')
+            //         .download(nome)
+
+            //     //console.log(data)
+            //     const audioUrl = URL.createObjectURL(data.data)
+            //     const tag = <audio src={audioUrl} controls></audio>
+
+            //     return tag
+            // }
+
+
+
+            // console.log(getData())
+
+            return <AudioChat nome={nome} />
+        }
+
+        else {
+            return message.toString()
+        }
+
+
+
+    }
+
     return (
         <Box
             tag="ul"
@@ -211,7 +279,6 @@ function MessageList({ mensagens, setMsg }) {
 
             }}
         >
-
 
 
             {
@@ -315,9 +382,14 @@ function MessageList({ mensagens, setMsg }) {
                                     display: 'flex',
                                     justifyContent: 'space-between',
                                 }}>
-                                    {mensagem.texto.startsWith(':sticker:')
-                                        ? <Image src={mensagem.texto.replace(':sticker:', '')} />
-                                        : mensagem.texto.toString()
+                                    {
+                                        // mensagem.texto.startsWith(':sticker:')
+                                        //     ? <Image src={mensagem.texto.replace(':sticker:', '')} />
+                                        //     : mensagem.texto.toString()
+                                    }
+
+                                    {
+                                        renderSwitch(mensagem.texto)
                                     }
 
                                     <Button label="❌" styleSheet={{
@@ -331,6 +403,11 @@ function MessageList({ mensagens, setMsg }) {
                                             var list = [...mensagens]
                                             list.splice(index, 1)
                                             setMsg(list)
+                                            supabaseClient
+                                                .from('mensagens')
+                                                .delete()
+                                                .match({ id: mensagem.id })
+                                                .then(resp => console.log(resp))
                                         }}
                                     />
 
@@ -342,4 +419,27 @@ function MessageList({ mensagens, setMsg }) {
             }
         </Box>
     )
+}
+
+
+
+
+function AudioChat({ nome }) {
+
+    const [src, setSrc] = useState()
+
+    useEffect(() => {
+        supabaseClient
+        .storage
+        .from('audios')
+        .download(nome)
+        .then(data => {    
+            const audioUrl = URL.createObjectURL(data.data)
+            setSrc(audioUrl)
+        })
+    }, [])
+    
+
+
+    return <audio controls src={src}></audio>
 }
