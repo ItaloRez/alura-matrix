@@ -12,7 +12,7 @@ export default function pages(props) {
     useEffect(() => {
         //listaAudios()
         //getMedia()
-        start()
+        //start()
     }, [])
 
     const [lista, setLista] = useState([])
@@ -193,6 +193,7 @@ export default function pages(props) {
                                     audio.play();
                                 };
 
+                                stream.getTracks()[0].stop();
                                 resolve({ audioBlob, audioUrl, play });
                             });
 
@@ -209,14 +210,18 @@ export default function pages(props) {
 
     async function start() {
         const recorder = await recordAudio()
+        recorder.start()
+        //botaoStart.current.addEventListener('click', () => recorder.start())
 
-        botaoStart.current.addEventListener('click', () => recorder.start())
-        botaoPause.current.addEventListener('click', () => {
+        const stop = () => {
             recorder.stop()
                 .then(resp => {
                     uploadMusic(resp.audioBlob)
+                    //resp.play()
+                    botaoPause.current.removeEventListener('click', stop)
                 })
-        })
+        }        
+        botaoPause.current.addEventListener('click', stop)
     }
 
     const botaoPause = useRef()
@@ -234,7 +239,10 @@ export default function pages(props) {
                 className="btn btn-primary rounded-circle"
                 style={{ height: '50px', width: '50px', marginBottom: '8px', marginLeft: '10px',
                 display: estadoBotao ? null : 'none' }}
-                onClick={mudaBotao}
+                onClick={()=>{
+                    start()
+                    mudaBotao()
+                }}
                 type="button"
             >
                 <AiFillAudio className='mx-auto my-auto' style={{ fontSize: '20px' }} />
